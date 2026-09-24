@@ -49,3 +49,65 @@ services:
       HTTP_ADDR: ":8080"
     ports:
       - "8080:8080"
+    
+  rules:
+    build:
+      context: .
+      dockerfile: Dockerfile.rules 
+    environment:
+      GRPC_ADDR: ":50051"
+    ports:
+      - "50051:50051"
+
+  labeling:
+    build:
+      context: .
+      dockerfile: Dockerfile.labeling
+    depends_on:
+      kafka:
+        condition: service_healthy
+      rules:
+        condition: service_started
+    environment:
+      KAFKA_BROKERS: "kafka:9092"
+      RULES_ADDR: "rules:50051"
+      KAFKA_GROUP_ID: "labeling_service"
+
+  postgres:
+    image: postgres:17-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: storage
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 40s
+
+  storage:
+    build:
+      context: .
+      dockerfile: Dockerfile.storage
+    environment:
+      KAFKA_BROKERS: "kafka:9092"
+      KAFKA_GROUP_ID: "storage-service"
+      HTTP_ADDR: ":8081"
+      POSTGRES_DSN: "postgres://postgres:postgres@postgres:5432/storage"
+    depends_on:
+      kafka:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8081:8081"
+
+volumes:
+  postgres_data:
+       
+      
