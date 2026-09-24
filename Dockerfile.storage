@@ -1,0 +1,18 @@
+# syntax=docker/dockerfile:1
+FROM --platform=linux/amd64 golang:1.26-alpine AS build
+WORKDIR /src
+
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+RUN mkdir -p /out && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /out/storage ./cmd/storage
+RUN ls -la /out/storage
+
+FROM --platform=linux/amd64 alpine:3.20
+RUN adduser -D -u 10001 appuser
+COPY --from=build --chmod=755 /out/storage /usr/local/bin/storage
+USER appuser
+
+EXPOSE 8081
+ENTRYPOINT ["storage"]

@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package rules;
+
+option go_package = "callmark/proto/rules";
+
+service RulesService {
+  rpc CheckEntity(CheckEntityRequest) returns (CheckEntityResponse);
+}
+
+message CheckEntityRequest {
+  string inn = 1;
+}
+
+message CheckEntityResponse {
+  Status status = 1;
+  string category = 2;
+}
+
+enum Status {
+  UNKNOWN = 0;
+  OK = 1;
+  BLACKLISTED = 2;
+}
